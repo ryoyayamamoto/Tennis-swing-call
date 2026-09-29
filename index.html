@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="素振りコール">
+  <link rel="apple-touch-icon" href="./icons/icon-180.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <title>テニス素振りコール</title>
+  <style>
+    :root{color-scheme:dark;--bg:#020617;--panel:#0f172a;--line:#334155;--text:#f8fafc;--muted:#94a3b8;--accent:#38bdf8}
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    body{min-height:100dvh;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom)}
+    main{max-width:720px;margin:auto;padding:18px 0 28px}
+    h1{font-size:clamp(26px,7vw,38px);margin:0 0 6px}
+    .sub{margin:0 0 16px;color:var(--muted)}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:18px;margin-bottom:14px}
+    .hero{text-align:center}
+    .label,.hint,.status{color:var(--muted);font-size:13px}
+    #call{font-size:clamp(58px,18vw,108px);font-weight:900;line-height:1.05;margin:18px 0 8px;letter-spacing:-.04em}
+    #next{min-height:1.5em;color:var(--muted)}
+    .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+    button{appearance:none;border:0;border-radius:16px;min-height:54px;padding:0 16px;background:#1e293b;color:#fff;font-size:18px;font-weight:800}
+    button.primary{background:var(--accent);color:#082f49}
+    button.stop{background:#7f1d1d}
+    button:disabled{opacity:.45}
+    .counts{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:15px;color:var(--muted);font-size:14px}
+    .counts strong{color:var(--text)}
+    h2{font-size:18px;margin:0 0 16px}
+    .control{margin-bottom:18px}
+    .row{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:4px}
+    label{font-weight:700}
+    input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
+    input[type=checkbox]{width:24px;height:24px;accent-color:var(--accent)}
+    .toggle{display:flex;justify-content:space-between;align-items:center;gap:14px;border-top:1px solid var(--line);padding-top:14px}
+    .wide{width:100%;margin-top:10px;border:1px solid var(--line)}
+    .status{text-align:center;min-height:1.4em;margin-top:12px}
+    .install{padding:12px 14px;border:1px dashed var(--line);border-radius:16px;color:var(--muted);font-size:13px;line-height:1.55}
+    @media(max-width:420px){body{padding-left:12px;padding-right:12px}.card{padding:15px}button{font-size:17px}}
+  </style>
+</head>
+<body>
+<main>
+  <h1>テニス素振りコール</h1>
+  <p class="sub">フォア / バックをランダムに音声コール</p>
+
+  <section class="card hero">
+    <div class="label">次のショット</div>
+    <div id="call" aria-live="assertive">準備OK</div>
+    <div id="next">スタートを押してな</div>
+    <div class="actions">
+      <button id="start" class="primary" type="button">▶ スタート</button>
+      <button id="stop" class="stop" type="button" disabled>■ ストップ</button>
+    </div>
+    <div class="counts">
+      <span>フォア <strong id="foreCount">0</strong></span>
+      <span>バック <strong id="backCount">0</strong></span>
+      <span>合計 <strong id="totalCount">0</strong></span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>設定</h2>
+    <div class="control">
+      <div class="row"><label for="tempo">基本テンポ</label><span><strong id="tempoValue">2.0</strong> 秒</span></div>
+      <input id="tempo" type="range" min="0.8" max="5" step="0.1" value="2">
+      <div class="hint">次のコールまでの平均間隔</div>
+    </div>
+    <div class="control">
+      <div class="row"><label for="jitter">ランダム幅</label><span>± <strong id="jitterValue">0.5</strong> 秒</span></div>
+      <input id="jitter" type="range" min="0" max="1.5" step="0.1" value="0.5">
+      <div class="hint">一定テンポになりすぎないように揺らす</div>
+    </div>
+    <div class="control">
+      <div class="row"><label for="foreRatio">フォア率</label><span><strong id="ratioValue">50</strong>%</span></div>
+      <input id="foreRatio" type="range" min="10" max="90" step="5" value="50">
+      <div class="hint">50%ならフォア / バックがほぼ半々</div>
+    </div>
+    <div class="toggle">
+      <div><strong>音声読み上げ</strong><div class="hint">「フォア！」「バック！」と発声</div></div>
+      <input id="voice" type="checkbox" checked aria-label="音声読み上げ">
+    </div>
+    <button id="test" class="wide" type="button">🔊 音声テスト</button>
+    <button id="reset" class="wide" type="button">カウントをリセット</button>
+  </section>
+
+  <div class="install">iPhoneではSafariでこのページを開いて、共有 →「ホーム画面に追加」でアプリとして使えるで。オフライン対応済み。</div>
+  <div id="status" class="status" aria-live="polite"></div>
+</main>
+<script>
+(function(){
+  function byId(id){return document.getElementById(id);}
+  var el={
+    call:byId('call'),next:byId('next'),start:byId('start'),stop:byId('stop'),
+    tempo:byId('tempo'),jitter:byId('jitter'),ratio:byId('foreRatio'),voice:byId('voice'),
+    tempoValue:byId('tempoValue'),jitterValue:byId('jitterValue'),ratioValue:byId('ratioValue'),
+    foreCount:byId('foreCount'),backCount:byId('backCount'),totalCount:byId('totalCount'),
+    test:byId('test'),reset:byId('reset'),status:byId('status')
+  };
+
+  var saved={};
+  try{saved=JSON.parse(localStorage.getItem('tennisSwingSettings')||'{}');}catch(e){}
+  if(saved.tempo)el.tempo.value=saved.tempo;
+  if(saved.jitter!==undefined)el.jitter.value=saved.jitter;
+  if(saved.ratio)el.ratio.value=saved.ratio;
+  if(saved.voice!==undefined)el.voice.checked=saved.voice;
+
+  var running=false,timer=null,lastCall=null,sameStreak=0;
+  var counts={fore:0,back:0};
+
+  function save(){
+    localStorage.setItem('tennisSwingSettings',JSON.stringify({
+      tempo:el.tempo.value,jitter:el.jitter.value,ratio:el.ratio.value,voice:el.voice.checked
+    }));
+  }
+  function labels(){
+    el.tempoValue.textContent=Number(el.tempo.value).toFixed(1);
+    el.jitterValue.textContent=Number(el.jitter.value).toFixed(1);
+    el.ratioValue.textContent=el.ratio.value;
+    save();
+  }
+  function countView(){
+    el.foreCount.textContent=counts.fore;
+    el.backCount.textContent=counts.back;
+    el.totalCount.textContent=counts.fore+counts.back;
+  }
+  function speak(text){
+    if(!el.voice.checked||!('speechSynthesis' in window))return;
+    window.speechSynthesis.cancel();
+    var u=new SpeechSynthesisUtterance(text);
+    u.lang='ja-JP';u.rate=1.35;u.pitch=1;u.volume=1;
+    window.speechSynthesis.speak(u);
+  }
+  function shot(){
+    var s=Math.random()<Number(el.ratio.value)/100?'fore':'back';
+    if(sameStreak>=3&&s===lastCall)s=s==='fore'?'back':'fore';
+    if(s===lastCall)sameStreak++;else sameStreak=1;
+    lastCall=s;
+    return s;
+  }
+  function delay(){
+    var base=Math.max(.8,Number(el.tempo.value));
+    var spread=Math.max(0,Number(el.jitter.value));
+    return Math.max(550,(base+(Math.random()*2-1)*spread)*1000);
+  }
+  function nextCall(){
+    if(!running)return;
+    var s=shot(),word=s==='fore'?'フォア！':'バック！';
+    el.call.textContent=word;
+    counts[s]++;countView();speak(word);
+    var d=delay();
+    el.next.textContent='次まで約 '+(d/1000).toFixed(1)+' 秒';
+    timer=setTimeout(nextCall,d);
+  }
+  function start(){
+    if(running)return;
+    running=true;el.start.disabled=true;el.stop.disabled=false;
+    el.call.textContent='3…';el.next.textContent='構えて！';el.status.textContent='ランダムコール中';
+    speak('スタート');
+    timer=setTimeout(nextCall,1200);
+  }
+  function stop(){
+    running=false;
+    if(timer)clearTimeout(timer);timer=null;
+    if('speechSynthesis' in window)window.speechSynthesis.cancel();
+    el.start.disabled=false;el.stop.disabled=true;
+    el.call.textContent='休憩';el.next.textContent='再開するときはスタート';el.status.textContent='';
+  }
+
+  el.start.addEventListener('click',start);
+  el.stop.addEventListener('click',stop);
+  el.test.addEventListener('click',function(){speak('フォア！ バック！');el.status.textContent='音が聞こえたらOK';});
+  el.reset.addEventListener('click',function(){counts={fore:0,back:0};lastCall=null;sameStreak=0;countView();});
+  [el.tempo,el.jitter,el.ratio].forEach(function(x){x.addEventListener('input',labels);});
+  el.voice.addEventListener('change',labels);
+
+  labels();countView();
+  if(!('speechSynthesis' in window)){
+    el.voice.checked=false;el.voice.disabled=true;el.test.disabled=true;
+    el.status.textContent='このブラウザは音声読み上げ非対応です。';
+  }
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){});});
+  }
+}());
+</script>
+</body>
+</html>
